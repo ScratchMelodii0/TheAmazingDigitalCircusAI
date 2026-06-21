@@ -38,7 +38,11 @@ This project is built one system at a time. Completed so far:
   - `PlayerController2D` (coyote time, jump buffer, variable jump, character-driven tuning)
   - `PlayerAnimator` (safe Animator parameter driving)
   - Modular abilities: `PlayerAbility` base, `GlitchDashAbility` (Pomni), `AbilityController` + cooldown
-- ⬜ Step 3 — Circus Hub scene
+- ✅ **Step 3 — Circus Hub scene**
+  - `EpisodeData` / `EpisodeDatabase` (chapter data layer)
+  - `GameManager` extended: episode selection/unlocking + sanity/abstraction system & events
+  - `SceneLoader` (async scene loading with progress)
+  - `HubManager`, `EpisodeSelector` / `EpisodeCardUI`, `SanityMeterUI`
 - ⬜ Step 4 — Episode 1 (Pilot) level prototype
 - ⬜ Step 5–… — Episodes 2–9, bosses, endings, polish
 

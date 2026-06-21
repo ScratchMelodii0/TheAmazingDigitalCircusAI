@@ -36,12 +36,29 @@ namespace DigitalCircus.Core
             }
         }
 
+        /// <summary>Maximum value of the sanity / abstraction meter.</summary>
+        public const float MaxSanity = 100f;
+
         /// <summary>Raised whenever the selected character changes (menus/HUD listen to refresh).</summary>
         public event Action<CharacterData> OnSelectedCharacterChanged;
 
+        /// <summary>Raised whenever the active episode changes.</summary>
+        public event Action<EpisodeData> OnSelectedEpisodeChanged;
+
+        /// <summary>Raised whenever sanity changes (current, max). Drives the HUD meter.</summary>
+        public event Action<float, float> OnSanityChanged;
+
+        /// <summary>Raised once when sanity hits zero — the player has "abstracted".</summary>
+        public event Action OnAbstracted;
+
         public SaveData Save { get; private set; }
         public CharacterDatabase Database { get; private set; }
+        public EpisodeDatabase Episodes { get; private set; }
         public CharacterData SelectedCharacter { get; private set; }
+        public EpisodeData SelectedEpisode { get; private set; }
+
+        /// <summary>Live sanity value, 0…<see cref="MaxSanity"/>.</summary>
+        public float Sanity => Save != null ? Save.sanity : MaxSanity;
 
         private bool _initialized;
 
@@ -64,6 +81,7 @@ namespace DigitalCircus.Core
             _initialized = true;
 
             Database = CharacterDatabase.Load();
+            Episodes = EpisodeDatabase.Load();
             Save = SaveManager.Load();
 
             // Resolve the saved character id to a concrete asset, falling back to the
@@ -75,6 +93,77 @@ namespace DigitalCircus.Core
                 if (SelectedCharacter != null)
                     Save.selectedCharacterId = SelectedCharacter.CharacterId;
             }
+
+            // Default the active episode to the highest one the player has reached.
+            if (Episodes != null && Episodes.Count > 0)
+            {
+                int idx = Mathf.Clamp(Save.highestUnlockedEpisode, 0, Episodes.Count - 1);
+                SelectedEpisode = Episodes.GetByIndex(idx);
+            }
+        }
+
+        // ---- Episodes ------------------------------------------------------------
+
+        /// <summary>Sets the active episode (does not load the scene — the Hub does that).</summary>
+        public void SelectEpisode(EpisodeData episode)
+        {
+            if (episode == null) return;
+            SelectedEpisode = episode;
+            OnSelectedEpisodeChanged?.Invoke(episode);
+        }
+
+        /// <summary>Is this episode reachable given the player's progress?</summary>
+        public bool IsEpisodeUnlocked(int episodeIndex) =>
+            episodeIndex <= Save.highestUnlockedEpisode;
+
+        public bool IsEpisodeUnlocked(EpisodeData episode)
+        {
+            if (episode == null || Episodes == null) return false;
+            if (episode.UnlockedByDefault) return true;
+            int idx = IndexOfEpisode(episode);
+            return idx >= 0 && idx <= Save.highestUnlockedEpisode;
+        }
+
+        private int IndexOfEpisode(EpisodeData episode)
+        {
+            for (int i = 0; i < Episodes.Count; i++)
+                if (Episodes.GetByIndex(i) == episode) return i;
+            return -1;
+        }
+
+        /// <summary>Marks an episode complete, unlocking the next one, and persists.</summary>
+        public void CompleteEpisode(int episodeIndex)
+        {
+            int next = episodeIndex + 1;
+            if (next > Save.highestUnlockedEpisode)
+            {
+                Save.highestUnlockedEpisode = next;
+                SaveManager.Save(Save);
+            }
+        }
+
+        // ---- Sanity / Abstraction ------------------------------------------------
+
+        /// <summary>Adds to (or subtracts from) sanity, clamps, persists nothing (use during play).</summary>
+        public void ModifySanity(float delta)
+        {
+            if (Save == null) return;
+            float previous = Save.sanity;
+            Save.sanity = Mathf.Clamp(Save.sanity + delta, 0f, MaxSanity);
+
+            if (!Mathf.Approximately(previous, Save.sanity))
+                OnSanityChanged?.Invoke(Save.sanity, MaxSanity);
+
+            if (Save.sanity <= 0f && previous > 0f)
+                OnAbstracted?.Invoke();
+        }
+
+        /// <summary>Restores sanity to full (e.g. when entering the Hub or starting a level).</summary>
+        public void ResetSanity()
+        {
+            if (Save == null) return;
+            Save.sanity = MaxSanity;
+            OnSanityChanged?.Invoke(Save.sanity, MaxSanity);
         }
 
         /// <summary>Sets the active character and persists the choice immediately.</summary>
