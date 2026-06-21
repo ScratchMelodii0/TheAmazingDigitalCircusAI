@@ -33,7 +33,11 @@ This project is built one system at a time. Completed so far:
   - `CharacterData` / `CharacterDatabase` / `AbilityType` (data layer)
   - `SaveData` / `SaveManager` (atomic JSON saves) / `GameManager` (persistent singleton)
   - `MainMenuManager` / `CharacterSelector` / `CharacterCardUI` (data-driven UI)
-- ⬜ Step 2 — Touch controls + Pomni player controller
+- ✅ **Step 2 — Touch controls + Pomni player controller**
+  - `IInputSource` / `VirtualJoystick` / `TouchButton` / `MobileInput` (touch + editor keyboard)
+  - `PlayerController2D` (coyote time, jump buffer, variable jump, character-driven tuning)
+  - `PlayerAnimator` (safe Animator parameter driving)
+  - Modular abilities: `PlayerAbility` base, `GlitchDashAbility` (Pomni), `AbilityController` + cooldown
 - ⬜ Step 3 — Circus Hub scene
 - ⬜ Step 4 — Episode 1 (Pilot) level prototype
 - ⬜ Step 5–… — Episodes 2–9, bosses, endings, polish
